@@ -12,7 +12,7 @@ const SizeConfigPanel = () => {
     const ptToMm = (pt) => pt / 2.8346456693;
     const inToPt = (inch) => inch * 72;
 
-    // ⭐ CLEAN FORMATTER — removes unnecessary decimals
+    // CLEAN FORMATTER — removes unnecessary decimals
     const cleanNumber = (num) => {
         if (num == null || isNaN(num)) return "0";
         const rounded = parseFloat(num.toFixed(2));
@@ -33,7 +33,7 @@ const SizeConfigPanel = () => {
         setCouponHeightInput("0");
     }, []);
 
-    // ⭐ Sync values when preset updates
+    // Sync values when preset updates
     useEffect(() => {
         if (!layout.values.presetUpdate) return;
 
@@ -51,19 +51,40 @@ const SizeConfigPanel = () => {
         layout.values.presetUpdate
     ]);
 
+    useEffect(() => {
+        const { paperWidthPt, paperHeightPt, paperUnit } = layout.values;
+
+        const toDisplay = (pt) =>
+            paperUnit === "mm"
+                ? cleanNumber(ptToMm(pt))
+                : cleanNumber(pt / 72);
+
+        setPaperWidthInput(toDisplay(paperWidthPt));
+        setPaperHeightInput(toDisplay(paperHeightPt));
+    }, [
+        layout.values.paperUnit,
+        layout.values.paperWidthPt,
+        layout.values.paperHeightPt,
+    ]);
+
+
+
     // ---------------------------
     // INPUT HANDLERS
     // ---------------------------
     const handlePaperWidthChange = (val) => {
         setPaperWidthInput(val);
+
+        if (val === "") return; // 👈 allow empty while typing
+
         const n = Number(val);
-        if (!isNaN(n)) {
-            layout.set.setPaperWidthPt(
-                layout.values.paperUnit === "mm" ? mmToPt(n) : inToPt(n)
-            );
-        }
-        handleRefresh();
+        if (isNaN(n)) return;
+
+        layout.set.setPaperWidthPt(
+            layout.values.paperUnit === "mm" ? mmToPt(n) : inToPt(n)
+        );
     };
+
 
     const handlePaperHeightChange = (val) => {
         setPaperHeightInput(val);
@@ -157,7 +178,7 @@ const SizeConfigPanel = () => {
             </div>
 
             <div className="flex flex-col gap-1">
-                <h2 className="text-lg text-nero-400 font-medium">Coupon Size</h2>
+                <h2 className="text-lg text-nero-400 font-medium">Label Size</h2>
 
                 <div className="w-full flex items-center gap-2">
                     <SizeInput

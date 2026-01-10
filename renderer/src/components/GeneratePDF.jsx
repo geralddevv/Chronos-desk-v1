@@ -1,4 +1,4 @@
-import { Document, Page, View, pdf } from "@react-pdf/renderer";
+import { Document, Page, View, pdf, Text } from "@react-pdf/renderer";
 import { useState, useEffect, useRef } from "react";
 import { addTrimMarksToPDF } from "../utils/TrimMarksPDFLib";
 import TokenTemplate from "../utils/TokenTemplate";
@@ -10,9 +10,7 @@ import Toast from "../utils/Toast";
 import { AnimatePresence, motion } from "framer-motion";
 import { generateQR } from "../utils/generateQR";
 
-// ----------------------------
 // Utility Helpers
-// ----------------------------
 
 const split = (arr, size) => {
   const out = [];
@@ -31,11 +29,21 @@ function computeAutoMargins(layout) {
   if (!paperWidthPt || !paperHeightPt || !couponWidthPt || !couponHeightPt)
     return;
 
-  const cols = Math.floor(paperWidthPt / couponWidthPt);
-  const rows = Math.floor(paperHeightPt / couponHeightPt);
+  const { gapXPt, gapYPt } = layout.values;
 
-  const usedW = cols * couponWidthPt;
-  const usedH = rows * couponHeightPt;
+  const cols = Math.floor(
+    (paperWidthPt + gapXPt) / (couponWidthPt + gapXPt)
+  );
+
+  const rows = Math.floor(
+    (paperHeightPt + gapYPt) / (couponHeightPt + gapYPt)
+  );
+
+  const usedW =
+    cols * couponWidthPt + Math.max(0, cols - 1) * gapXPt;
+
+  const usedH =
+    rows * couponHeightPt + Math.max(0, rows - 1) * gapYPt;
 
   let marginX = Math.max(0, (paperWidthPt - usedW) / 2);
   let marginY = Math.max(0, (paperHeightPt - usedH) / 2);
@@ -51,6 +59,7 @@ function computeAutoMargins(layout) {
   }
 }
 
+
 const calculatePerPage = (layout) => {
   const {
     paperWidthPt,
@@ -61,23 +70,43 @@ const calculatePerPage = (layout) => {
     rightMargin,
     topMargin,
     bottomMargin,
+    gapXPt,
+    gapYPt,
   } = layout.values;
 
   const usableW = paperWidthPt - leftMargin - rightMargin;
   const usableH = paperHeightPt - topMargin - bottomMargin;
 
-  const cols = Math.floor(usableW / couponWidthPt);
-  const rows = Math.floor(usableH / couponHeightPt);
+  const cols = Math.floor(
+    (usableW + gapXPt) / (couponWidthPt + gapXPt)
+  );
+
+  const rows = Math.floor(
+    (usableH + gapYPt) / (couponHeightPt + gapYPt)
+  );
 
   return cols * rows;
 };
+
 
 // ----------------------------
 // PDF Document Component
 // ----------------------------
 
-const PDFDoc = ({ coupons, qrList, layout }) => {
+const PDFDoc = ({
+  coupons,
+  qrList,
+  layout,
+  pageOffset,
+  totalSheets,
+  totalLabels,
+  code,
+  lot,
+  job,
+}) => {
+
   const { values } = layout;
+
   const {
     paperWidthPt,
     paperHeightPt,
@@ -88,13 +117,23 @@ const PDFDoc = ({ coupons, qrList, layout }) => {
     topMargin,
     bottomMargin,
     fontScale,
+    gapXPt,
+    gapYPt,
   } = values;
 
   const usableW = paperWidthPt - leftMargin - rightMargin;
   const usableH = paperHeightPt - topMargin - bottomMargin;
 
-  const columns = Math.max(1, Math.floor(usableW / couponWidthPt));
-  const rows = Math.max(1, Math.floor(usableH / couponHeightPt));
+  const columns = Math.max(
+    1,
+    Math.floor((usableW + gapXPt) / (couponWidthPt + gapXPt))
+  );
+
+  const rows = Math.max(
+    1,
+    Math.floor((usableH + gapYPt) / (couponHeightPt + gapYPt))
+  );
+
   const perPage = columns * rows;
 
   const pages = [];
@@ -110,13 +149,78 @@ const PDFDoc = ({ coupons, qrList, layout }) => {
           size={{ width: paperWidthPt, height: paperHeightPt }}
           style={{ position: "relative" }}
         >
+          <View
+            style={{
+              position: "absolute",
+
+              // container = full top margin band
+              top: 0,
+              height: topMargin,
+
+              // anchored to paper edge
+              right: rightMargin,
+
+              width: paperWidthPt,
+
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "flex-end",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 14,
+                color: "#000",
+                textAlign: "right",
+                fontWeight: 700,
+                paddingBottom: 10,
+              }}
+            >
+              {code} ({totalLabels}) | EUREKA | DEC 2025 | Lot {lot} | Job {job} | Sheet {pageOffset + pIndex + 1}/{totalSheets}
+            </Text>
+          </View>
+          <View
+            style={{
+              position: "absolute",
+
+              // container = full top margin band
+              bottom: 0,
+              height: bottomMargin,
+
+              // anchored to paper edge
+              left: leftMargin,
+
+              width: paperWidthPt,
+
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "flex-start",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 14,
+                color: "#000",
+                textAlign: "left",
+                fontWeight: 700,
+                paddingTop: 10,
+              }}
+            >
+              {code} ({totalLabels}) | EUREKA | DEC 2025 | Lot {lot} | Job {job} | Sheet {pageOffset + pIndex + 1}/{totalSheets}
+            </Text>
+          </View>
+
+
+
           {pageCoupons.map((coupon, i) => {
             const globalIndex = pIndex * perPage + i;
             const row = Math.floor(i / columns);
             const col = i % columns;
 
-            const x = leftMargin + col * couponWidthPt;
-            const y = topMargin + row * couponHeightPt;
+            const x = leftMargin + col * (couponWidthPt + gapXPt);
+            const y = topMargin + row * (couponHeightPt + gapYPt);
+
+            const qrObj = qrList[globalIndex] || {};
 
             return (
               <View
@@ -129,9 +233,11 @@ const PDFDoc = ({ coupons, qrList, layout }) => {
                   height: couponHeightPt,
                 }}
               >
+
                 <TokenTemplate
                   coupon={coupon}
-                  qrCode={qrList[globalIndex] || null}
+                  qrCode={qrObj.mainQr}
+                  internalQr={qrObj.internalQr}
                   couponWidthPt={couponWidthPt}
                   couponHeightPt={couponHeightPt}
                   fontSize={5 * fontScale}
@@ -149,7 +255,7 @@ const PDFDoc = ({ coupons, qrList, layout }) => {
 // MAIN COMPONENT
 // ----------------------------
 
-export default function GeneratePDF({ coupons, error }) {
+export default function GeneratePDF({ coupons, jobMeta, error }) {
   const { resetSignal } = useRefresh();
 
   const qrListRef = useRef([]);
@@ -205,12 +311,22 @@ export default function GeneratePDF({ coupons, error }) {
 
       for (let batch of batches) {
         for (let coupon of batch) {
-          if (!coupon.qrCode) {
-            temp.push(null);
-          } else {
-            const qr = await generateQR(coupon.qrCode.toString());
-            temp.push(qr);
-          }
+          const qrValue =
+            coupon.qrCode !== undefined
+              ? coupon.qrCode
+              : coupon["Code URL"];
+
+          const mainQr =
+            qrValue !== undefined && qrValue !== null && qrValue !== ""
+              ? await generateQR(qrValue.toString())
+              : null;
+
+          const internalQr = coupon["Internal Code"]
+            ? await generateQR(coupon["Internal Code"].toString())
+            : null;
+
+          temp.push({ mainQr, internalQr });
+
           setProgress(Math.round((temp.length / coupons.length) * 50));
           await new Promise((r) => setTimeout(r, 0));
         }
@@ -244,39 +360,67 @@ export default function GeneratePDF({ coupons, error }) {
         setProgress(50 + Math.round(((i + 1) / couponPages.length) * 40));
 
         const blob = await pdf(
-          <PDFDoc coupons={couponPages[i]} qrList={qrPages[i]} layout={layout} />
+          <PDFDoc
+            coupons={couponPages[i]}
+            qrList={qrPages[i]}
+            layout={layout}
+            pageOffset={i * Math.ceil(couponPages[i].length / perPage)}
+            totalSheets={Math.ceil(coupons.length / perPage)}
+            totalLabels={coupons.length}
+            code={jobMeta?.code}
+            lot={jobMeta?.lot}
+            job={jobMeta?.job}
+          />
         ).toBlob();
 
         const raw = await blob.arrayBuffer();
-        const trimmed = await addTrimMarksToPDF(raw, layout.values);
-        buffers.push(trimmed);
+        buffers.push(raw);
       }
+
 
       setPhase("merge");
       setProgress(95);
 
       const merged = await mergePDFBuffers(buffers);
-      setPdfBlob(new Blob([merged], { type: "application/pdf" }));
+
+      const trimmedPdf = await addTrimMarksToPDF(
+        merged,
+        layout.values
+      );
+
+      setPdfBlob(new Blob([trimmedPdf], { type: "application/pdf" }));
 
       setProgress(100);
       setIsGenerating(false);
 
       setToastMsg("PDF Generated!");
       setShowToast(true);
+
     };
 
     run();
   }, [isReady, coupons, layout.values]);
+
+  const getOutputFileName = () => {
+    const code = jobMeta?.code || "OUTPUT";
+    const count = coupons.length;
+    return `${code} (${count}).pdf`;
+  };
 
   // --------------------------------------------
   // ELECTRON DOWNLOAD
   // --------------------------------------------
   const handleElectronDownload = () => {
     if (!pdfBlob) return;
+
     const url = URL.createObjectURL(pdfBlob);
-    window.electronAPI.startElectronDownload(url);
+    const fileName = getOutputFileName();
+
+    window.electronAPI.startElectronDownload(url, fileName);
+
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   };
+
 
   // --------------------------------------------
   // UI RENDER

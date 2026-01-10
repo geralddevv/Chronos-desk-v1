@@ -8,7 +8,7 @@ const animation = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
   exit: { opacity: 0 },
-  transition: { duration: 0.2, ease: "easeInOut" },
+  transition: { duration: 0.18, ease: "easeOut" },
 };
 
 const PresetHolder = () => {
@@ -53,7 +53,7 @@ const PresetHolder = () => {
 
 
       {/* CONTENT */}
-      <div className="minimal-scrollbar w-full h-[calc(100vh-102px)] overflow-auto flex flex-col relative">
+      <div className="minimal-scrollbar w-full h-[calc(100vh-100px)] overflow-auto flex flex-col relative">
         <AnimatePresence mode="wait">
           {currentTab === 0 && (
             <motion.div
@@ -69,6 +69,8 @@ const PresetHolder = () => {
               {renderPreset("A5", 148, 210)}
               {renderPreset("A6", 105, 148)}
               {renderPreset("12 x 18", 304.8, 457.2)}
+              {renderPreset("13 x 19", 330.2, 482.6)}
+              {renderPreset("19 x 13", 482.6, 330.2)}
             </motion.div>
           )}
 

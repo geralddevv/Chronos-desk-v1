@@ -1,27 +1,28 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import fs from "node:fs";
 import {
   app,
   BrowserWindow,
   session,
   ipcMain,
-  nativeTheme, // 👈 added
+  nativeTheme,
 } from "electron";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-console.log("Preload path:", path.join(__dirname, "../electron/preload.cjs"));
 
 /* ===============================
    FORCE DARK MODE (ALWAYS)
    =============================== */
 nativeTheme.themeSource = "dark";
 
+let pendingFileName = "OUTPUT.pdf"; // 👈 dynamic filename holder
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1000,
     height: 600,
-    show: false, // prevents flicker
+    show: false,
     icon: path.join(__dirname, "../assets/icon.ico"),
     autoHideMenuBar: true,
 
@@ -32,40 +33,45 @@ function createWindow() {
     },
   });
 
-  // Maximize before showing → smooth
   win.maximize();
   win.show();
 
-  // Load renderer
   win.loadFile(path.join(__dirname, "../renderer/dist/index.html"));
 
   /* ===============================
-     DOWNLOAD HANDLING
+     DOWNLOAD IPC (RECEIVE FROM UI)
      =============================== */
-
-  ipcMain.on("electron-download", (event, url) => {
+  ipcMain.on("electron-download", (event, { url, fileName }) => {
+    pendingFileName = fileName || "OUTPUT.pdf";
     win.webContents.downloadURL(url);
   });
 
+  /* ===============================
+     DOWNLOAD HANDLER
+     =============================== */
   session.defaultSession.on("will-download", (event, item, webContents) => {
     item.setSaveDialogOptions({
       title: "Save PDF",
-      defaultPath: "EF - Coupons.pdf",
+      defaultPath: pendingFileName,
       filters: [{ name: "PDF File", extensions: ["pdf"] }],
     });
 
     item.on("updated", () => {
-      webContents.send("download-started", "EF - Coupons.pdf");
+      webContents.send("download-started", pendingFileName);
     });
 
     item.once("done", (event, state) => {
       if (state === "completed") {
-        webContents.send("download-complete", "EF - Coupons.pdf");
+        webContents.send("download-complete", pendingFileName);
       } else {
-        webContents.send("download-failed", "EF - Coupons.pdf");
+        webContents.send("download-failed", pendingFileName);
       }
     });
   });
 }
 
 app.whenReady().then(createWindow);
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});

@@ -1,10 +1,10 @@
 // components/TokenTemplate.jsx
 import { View, Text, Image, Font } from "@react-pdf/renderer";
 import logo from "../assets/brand-logo.jpg";
-import staticQr from "../assets/static-qr.png";
+// import staticQr from "../assets/static-qr.png";`
 import TechUseTxt from "../assets/tech-use.png";
 
-// 🔥 FONT REGISTRATION MOVED HERE
+// FONT REGISTRATION MOVED HERE
 let fontsRegistered = false;
 
 if (!fontsRegistered) {
@@ -12,35 +12,90 @@ if (!fontsRegistered) {
     family: "Montserrat",
     fonts: [
       {
-        src: "./fonts/montserrat/Montserrat-Light.ttf",
+        src: new URL(
+          "../assets/fonts/montserrat/Montserrat-Light.ttf",
+          import.meta.url
+        ).href,
         fontWeight: 300,
       },
       {
-        src: "./fonts/montserrat/Montserrat-Regular.ttf",
+        src: new URL(
+          "../assets/fonts/montserrat/Montserrat-Regular.ttf",
+          import.meta.url
+        ).href,
         fontWeight: 400,
       },
       {
-        src: "./fonts/montserrat/Montserrat-SemiBold.ttf",
+        src: new URL(
+          "../assets/fonts/montserrat/Montserrat-SemiBold.ttf",
+          import.meta.url
+        ).href,
         fontWeight: 600,
       },
       {
-        src: "./fonts/montserrat/Montserrat-SemiBoldItalic.ttf",
+        src: new URL(
+          "../assets/fonts/montserrat/Montserrat-SemiBoldItalic.ttf",
+          import.meta.url
+        ).href,
         fontWeight: 600,
         fontStyle: "italic",
       },
       {
-        src: "./fonts/montserrat/Montserrat-Bold.ttf",
+        src: new URL(
+          "../assets/fonts/montserrat/Montserrat-Bold.ttf",
+          import.meta.url
+        ).href,
         fontWeight: 700,
       },
     ],
   });
 
+
   fontsRegistered = true;
 }
+
+const wrapTextByWords = (text = "", maxCharsPerLine = 14) => {
+  if (!text) return "";
+
+  const words = text.trim().split(/\s+/); // handles multiple spaces
+  const lines = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    // If current line is empty, start with the word
+    if (!currentLine) {
+      currentLine = word;
+      continue;
+    }
+
+    // Try adding word to current line
+    const nextLine = `${currentLine} ${word}`;
+
+    if (nextLine.length <= maxCharsPerLine) {
+      currentLine = nextLine;
+    } else {
+      // Push only if currentLine has content
+      lines.push(currentLine);
+
+      // VERY long single word safeguard (rare, but safe)
+      currentLine =
+        word.length > maxCharsPerLine
+          ? word // keep as-is, don't split unless forced
+          : word;
+    }
+  }
+
+  if (currentLine) lines.push(currentLine);
+
+  return lines.join("\n");
+};
+
+
 
 const TokenTemplate = ({
   coupon,
   qrCode,
+  internalQr,
   couponWidthPt,
   couponHeightPt,
   fontSize,
@@ -57,13 +112,14 @@ const TokenTemplate = ({
         width: couponWidthPt,
         height: couponHeightPt,
         padding: 5,
-        paddingTop: 6,
-        paddingBottom: 8,
+        paddingTop: 6 + 2.835,   // +1mm from top
+        paddingRight: 5 + 2.835,
+        paddingBottom: 8 - 2.835,
         alignItems: "center",
         justifyContent: "flex-start",
-        borderWidth: 0.75,
-        borderTopWidth: 2,
-        borderBottomWidth: 2,
+        // borderWidth: 0.75,
+        // borderTopWidth: 2,
+        // borderBottomWidth: 2,
         borderColor: "#000",
         display: "flex",
       }}
@@ -76,6 +132,7 @@ const TokenTemplate = ({
           fontWeight: 600,
           fontSize: headingSize,
           marginBottom: 4,
+          paddingLeft: 1.8,
           textAlign: "left",
           width: "100%",
         }}
@@ -100,7 +157,7 @@ const TokenTemplate = ({
           }}
         >
           {qrCode && (
-            <Image src={qrCode} style={{ width: "100%", margin: 0, padding: 0 }} />
+            <Image src={qrCode} style={{ width: "96%", margin: 0, padding: 0 }} />
           )}
         </View>
 
@@ -134,8 +191,10 @@ const TokenTemplate = ({
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            paddingRight: 5,
+            paddingRight: 3,
+            paddingLeft: 2,
             gap: 1,
+            marginRight: 1,
           }}
         >
           <Text
@@ -148,7 +207,9 @@ const TokenTemplate = ({
             *For Internal use only
           </Text>
 
-          <Image src={staticQr} style={{ width: "100%" }} />
+          {internalQr && (
+            <Image src={internalQr} style={{ width: "100%" }} />
+          )}
         </View>
 
         <View
@@ -156,6 +217,7 @@ const TokenTemplate = ({
             width: "50%",
             height: "100%",
             paddingLeft: 4,
+            paddingRight: 0,
             flexDirection: "column",
             alignItems: "flex-start",
             justifyContent: "center",
@@ -205,11 +267,7 @@ const TokenTemplate = ({
               SKU Name
             </Text>
             {"\n"}
-            <Text>
-              {(coupon?.["Product Description"] || "").slice(0, 12)}
-              {"\n"}
-              {(coupon?.["Product Description"] || "").slice(13)}
-            </Text>
+            {wrapTextByWords(coupon?.["Product Description"], 14)}
           </Text>
 
           <Text
