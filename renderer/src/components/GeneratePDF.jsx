@@ -59,7 +59,6 @@ function computeAutoMargins(layout) {
   }
 }
 
-
 const calculatePerPage = (layout) => {
   const {
     paperWidthPt,
@@ -152,16 +151,12 @@ const PDFDoc = ({
           <View
             style={{
               position: "absolute",
-
               // container = full top margin band
               top: 0,
               height: topMargin,
-
               // anchored to paper edge
               right: rightMargin,
-
               width: paperWidthPt,
-
               display: "flex",
               justifyContent: "center",
               alignItems: "flex-end",
@@ -404,7 +399,16 @@ export default function GeneratePDF({ coupons, jobMeta, error }) {
   const getOutputFileName = () => {
     const code = jobMeta?.code || "OUTPUT";
     const count = coupons.length;
-    return `${code} (${count}).pdf`;
+    
+    const lot = jobMeta?.lot ? `Lot ${jobMeta.lot}` : null;
+    const job = jobMeta?.job ? `Job ${jobMeta.job}` : null;
+    
+    const extra =
+      lot || job
+        ? ` ( ${[lot, job].filter(Boolean).join(", ")} )`
+        : "";
+    
+    return `${code} (${count})${extra}.pdf`;
   };
 
   // --------------------------------------------
