@@ -164,14 +164,14 @@ const PDFDoc = ({
           >
             <Text
               style={{
-                fontSize: 14,
+                fontSize: 18,
                 color: "#000",
                 textAlign: "right",
                 fontWeight: 700,
-                paddingBottom: 10,
+                paddingTop: 4,
               }}
             >
-              {code} ({totalLabels}) | EUREKA | DEC 2025 | Lot {lot} | Job {job} | Sheet {pageOffset + pIndex + 1}/{totalSheets}
+              Lot: {lot} | {code} | Qty: {totalLabels} | SKU No: {job} | Sheet {pageOffset + pIndex + 1}/{totalSheets}
             </Text>
           </View>
           <View
@@ -194,14 +194,14 @@ const PDFDoc = ({
           >
             <Text
               style={{
-                fontSize: 14,
+                fontSize: 18,
                 color: "#000",
                 textAlign: "left",
                 fontWeight: 700,
-                paddingTop: 10,
+                paddingTop: 4,
               }}
             >
-              {code} ({totalLabels}) | EUREKA | DEC 2025 | Lot {lot} | Job {job} | Sheet {pageOffset + pIndex + 1}/{totalSheets}
+              Lot: {lot} | {code} | Qty: {totalLabels} | SKU No: {job} | Sheet {pageOffset + pIndex + 1}/{totalSheets}
             </Text>
           </View>
 
